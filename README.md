@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/terabyebye-Yahoo.jpg" alt="TeraByeBye Logo" width="400">
+</p>
+
 # TeraByeBye
 
 **Yahoo! took your terabyte. Time to say bye-bye to old mail.**
@@ -19,6 +23,7 @@ In 2024, Yahoo! reduced free email storage from 1TB to 20GB. If you're like me w
 - **Binary search** to find the cutoff point (~20 checks instead of scanning all emails)
 - **Robust reconnection** handling for large mailboxes
 - **Batch processing** with automatic retry on connection drops
+- **Backup to ZIP** - export emails to monthly ZIP files before deletion
 - **Dry-run mode** to preview before deleting
 - **Unhinged mode** for when you just want it gone
 
@@ -39,25 +44,70 @@ In 2024, Yahoo! reduced free email storage from 1TB to 20GB. If you're like me w
 ## Usage
 
 ```bash
-# Preview (dry run) - see what would be deleted
-python3 pop3_cleanup_fast.py
+# Preview what would be deleted (default)
+python3 terabyebye.py
+python3 terabyebye.py --preview    # Same thing, explicit
 
 # Actually delete (with confirmation prompt)
-python3 pop3_cleanup_fast.py --execute
+python3 terabyebye.py --delete
+
+# Backup to monthly ZIP files, then delete
+python3 terabyebye.py --backup ./email_backup --delete
 
 # No prompts, no mercy
-python3 pop3_cleanup_fast.py --unhinged
+python3 terabyebye.py --unhinged
 ```
+
+### Backup Option
+
+Use `--backup OUTPUT_DIR` to export emails:
+
+```bash
+# Just backup (no deletion)
+python3 terabyebye.py --backup ./my_backup
+
+# Backup + delete (deletes each batch after successful backup)
+python3 terabyebye.py --backup ./my_backup --delete
+```
+
+Creates monthly ZIP files containing EML files:
+```
+./my_backup/
+  emails_2009-01.zip
+  emails_2009-02.zip
+  ...
+```
+
+Each ZIP contains individual `.eml` files that can be opened in any email client or imported into other services.
+
+When using `--backup --delete`, each batch is deleted immediately after being written to disk. This keeps memory low and ensures you don't lose emails if the process is interrupted - you'll have everything backed up that was deleted.
 
 ## Configuration Options
 
-Edit `.yahoo_cleanup_config` to customize:
+Edit `.yahoo_cleanup_config` to customize what gets deleted. Choose **one** method:
 
+### Method 1: Delete by Year Range (NEW)
+```ini
+DELETE_YEARS=2009-2015
+```
+Deletes all emails from years 2009 through 2015, keeping emails before 2009 and after 2015.
+
+### Method 2: Delete Before Date
+```ini
+CUTOFF_DATE=01-Jan-2024
+```
+Deletes all emails before January 1, 2024.
+
+### Method 3: Delete by Age (default)
+```ini
+YEARS_OLD=1
+```
+Deletes emails older than 1 year. Only used if neither `DELETE_YEARS` nor `CUTOFF_DATE` is set.
+
+### Performance Settings
 | Option | Default | Description |
 |--------|---------|-------------|
-| `CUTOFF_DATE` | - | Delete emails before this date (DD-Mon-YYYY format) |
-| `YEARS_OLD` | 1 | Delete emails older than X years (if CUTOFF_DATE not set) |
-| `BATCH_SIZE` | 50 | Emails per batch (max 50 recommended - Yahoo drops larger batches) |
+| `BATCH_SIZE` | 50 | Emails per batch (max 50 - Yahoo drops larger connections) |
 
 ## How It Works
 

@@ -15,17 +15,24 @@ YAHOO_EMAIL=your_email@yahoo.com
 YAHOO_APP_PASSWORD=xxxx xxxx xxxx xxxx
 
 # ============================================================
-# Optional: Deletion Settings
+# Optional: What to Delete (choose ONE method)
 # ============================================================
 
-# Delete emails before this specific date (format: DD-Mon-YYYY)
-# If set, this overrides YEARS_OLD
+# METHOD 1: Delete emails from a specific year range
+# Format: YYYY-YYYY (e.g., 2009-2015 deletes all emails from those years)
+# DELETE_YEARS=2009-2015
+
+# METHOD 2: Delete emails before a specific date (format: DD-Mon-YYYY)
 # CUTOFF_DATE=01-Jan-2024
 
-# Delete emails older than X years (default: 1)
-# Only used if CUTOFF_DATE is not set
+# METHOD 3: Delete emails older than X years (default: 1)
+# Only used if neither DELETE_YEARS nor CUTOFF_DATE is set
 # YEARS_OLD=1
 
-# Emails to delete per batch (default: 100, max: 100)
-# Smaller batches are more reliable - Yahoo rejects large batches
-# BATCH_SIZE=100
+# ============================================================
+# Optional: Performance Settings
+# ============================================================
+
+# Emails to delete per batch (default: 50, max: 50)
+# Smaller batches are more reliable - Yahoo kills larger connections
+# BATCH_SIZE=50

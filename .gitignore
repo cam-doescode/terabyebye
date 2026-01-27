@@ -2,6 +2,11 @@
 .yahoo_cleanup_config
 *.config
 
+# Backup folders
+my_backup/
+email_backup/
+backup/
+
 # Legacy/deprecated code
 legacy_code/
 

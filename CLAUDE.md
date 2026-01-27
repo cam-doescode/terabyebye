@@ -9,14 +9,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Running the Script
 
 ```bash
-# Dry run (preview only)
-python3 pop3_cleanup_fast.py
+# Preview what would be deleted
+python3 terabyebye.py
+python3 terabyebye.py --preview    # Explicit
 
-# Execute with confirmation
-python3 pop3_cleanup_fast.py --execute
+# Delete with confirmation
+python3 terabyebye.py --delete
 
-# Execute without prompts
-python3 pop3_cleanup_fast.py --unhinged
+# Backup + delete each batch
+python3 terabyebye.py --backup ./backup --delete
+
+# No prompts, no mercy
+python3 terabyebye.py --unhinged
 ```
 
 ## Configuration
@@ -27,17 +31,20 @@ Required fields:
 - `YAHOO_EMAIL` - Yahoo email address
 - `YAHOO_APP_PASSWORD` - App password (spaces removed automatically)
 
-Optional fields:
+Optional fields (choose one deletion method):
+- `DELETE_YEARS` - Delete emails from year range (e.g., "2009-2015")
 - `CUTOFF_DATE` - Delete before this date (DD-Mon-YYYY format)
-- `YEARS_OLD` - Delete emails older than X years (default: 1, ignored if CUTOFF_DATE set)
-- `BATCH_SIZE` - Emails per batch (default: 100, max: 100 - Yahoo rejects larger)
+- `YEARS_OLD` - Delete emails older than X years (default: 1)
+- `BATCH_SIZE` - Emails per batch (default: 50, max: 50 - Yahoo kills larger)
 
 ## Architecture
 
-Single-file script (`pop3_cleanup_fast.py`) with these key functions:
+Single-file script (`terabyebye.py`) with these key functions:
 
-- `binary_search_cutoff()` - Finds the message number where emails transition from old to new (~20 iterations for any mailbox size)
-- `delete_messages_robust()` - Batch deletion with reconnection handling, exponential backoff, and progress tracking by actual mailbox count
+- `binary_search_date()` - Finds message boundaries by date (~20 iterations for any mailbox size)
+- `get_deletion_range()` - Determines what to delete based on config (year range or cutoff date)
+- `backup_emails_to_zip()` - Downloads emails and saves to monthly ZIP files (EML format)
+- `delete_messages_robust()` - Batch deletion with reconnection handling, exponential backoff, and progress tracking
 - `get_message_date()` - Uses POP3 TOP command to fetch only headers (fast)
 
 ## Yahoo POP3 Quirks
