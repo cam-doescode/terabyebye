@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/terabyebye-Yahoo.jpg" alt="TeraByeBye Logo" width="400">
+  <img src="assets/terabyebye-Yahoo.png" alt="TeraByeBye Logo" width=600">
 </p>
 
 # TeraByeBye
