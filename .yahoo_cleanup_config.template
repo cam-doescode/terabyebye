@@ -1,0 +1,31 @@
+# Yahoo Email Cleanup Configuration Template
+# Copy this file to .yahoo_cleanup_config and fill in your credentials
+# NEVER commit your actual .yahoo_cleanup_config file!
+
+# ============================================================
+# Required: Credentials
+# ============================================================
+
+# Your Yahoo email address
+YAHOO_EMAIL=your_email@yahoo.com
+
+# Your Yahoo App Password (NOT your regular password)
+# Generate one at: https://login.yahoo.com/account/security
+# Under "App passwords", create a new one for "Other App"
+YAHOO_APP_PASSWORD=xxxx xxxx xxxx xxxx
+
+# ============================================================
+# Optional: Deletion Settings
+# ============================================================
+
+# Delete emails before this specific date (format: DD-Mon-YYYY)
+# If set, this overrides YEARS_OLD
+# CUTOFF_DATE=01-Jan-2024
+
+# Delete emails older than X years (default: 1)
+# Only used if CUTOFF_DATE is not set
+# YEARS_OLD=1
+
+# Emails to delete per batch (default: 100, max: 100)
+# Smaller batches are more reliable - Yahoo rejects large batches
+# BATCH_SIZE=100

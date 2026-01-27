@@ -1,0 +1,29 @@
+# Credentials - NEVER commit these
+.yahoo_cleanup_config
+*.config
+
+# Legacy/deprecated code
+legacy_code/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# IDE/Tools
+.claude/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
