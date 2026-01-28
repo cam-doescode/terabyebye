@@ -643,9 +643,9 @@ def delete_messages_robust(config, messages_to_delete, start_position=1):
                     subject, sender = get_message_headers(pop, i)
                     if should_exclude(subject, sender, subject_keywords, sender_patterns):
                         skipped_count += 1
-                        if skipped_count <= 5:
-                            print(f"  Excluded #{i}: {subject[:60]}")
-                        elif skipped_count == 6:
+                        if skipped_count <= 10:
+                            print(f"  KEPT #{i}: \"{subject[:50]}\" from {sender[:40]}")
+                        elif skipped_count == 11:
                             print(f"  (suppressing further exclusion messages...)")
                         continue
 

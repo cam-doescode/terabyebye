@@ -611,6 +611,23 @@ Examples:
     # Build search query and find messages
     query, description = build_search_query(config)
     print(f"\nSearching for emails: {description}")
+    print(f"  Query: {query}")
+
+    # Log active exclusions
+    exclude_subjects = config.get("EXCLUDE_SUBJECTS")
+    exclude_senders = config.get("EXCLUDE_SENDERS")
+    if exclude_subjects or exclude_senders:
+        print(f"\n  Active exclusion filters (these emails will be KEPT):")
+        if exclude_subjects:
+            for s in exclude_subjects.split(","):
+                s = s.strip()
+                if s:
+                    print(f"    Skipping subjects containing: {s}")
+        if exclude_senders:
+            for s in exclude_senders.split(","):
+                s = s.strip()
+                if s:
+                    print(f"    Skipping senders matching: {s}")
 
     message_ids = get_messages_by_query(service, query)
     messages_to_delete = len(message_ids)
