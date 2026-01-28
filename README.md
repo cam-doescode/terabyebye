@@ -185,3 +185,5 @@ python3 gmailbyebye.py --unhinged         # No prompts, no mercy
 ## License
 
 MIT - Do whatever you want with it. If it helps you escape email storage prison, I'm happy.
+
+All features are experimental, do so at your own risk. Not responsible for you losing emails.
