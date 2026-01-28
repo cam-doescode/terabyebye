@@ -1,0 +1,49 @@
+# Gmail Cleanup Configuration Template
+# Copy this file to .gmail_cleanup_config and fill in your settings
+# NEVER commit your actual .gmail_cleanup_config file!
+
+# ============================================================
+# Optional: Account Reference
+# ============================================================
+
+# Your Gmail address (for reference only - auth uses OAuth)
+GMAIL_EMAIL=your_email@gmail.com
+
+# ============================================================
+# Required: What to Delete (choose ONE method)
+# ============================================================
+
+# METHOD 1: Delete emails from a specific year range
+# Format: YYYY-YYYY (e.g., 2015-2020 deletes all emails from those years)
+DELETE_YEARS=2015-2020
+
+# METHOD 2: Delete emails before a specific date (format: DD-Mon-YYYY)
+# CUTOFF_DATE=01-Jan-2024
+
+# METHOD 3: Delete emails older than X years (default: 1)
+# Only used if neither DELETE_YEARS nor CUTOFF_DATE is set
+# YEARS_OLD=1
+
+# ============================================================
+# Required: Target Labels
+# ============================================================
+
+# Which Gmail labels/folders to clean (comma-separated)
+# Common labels:
+#   INBOX                  - Your inbox
+#   SENT                   - Sent mail
+#   SPAM                   - Spam folder
+#   TRASH                  - Trash
+#   CATEGORY_PROMOTIONS    - Promotions tab
+#   CATEGORY_SOCIAL        - Social tab
+#   CATEGORY_UPDATES       - Updates tab
+#   CATEGORY_FORUMS        - Forums tab
+LABELS=INBOX,CATEGORY_PROMOTIONS,CATEGORY_SOCIAL
+
+# ============================================================
+# Optional: Performance Settings
+# ============================================================
+
+# Emails to process per batch (default: 100, max: 1000)
+# Higher = faster, but may hit rate limits
+# BATCH_SIZE=100

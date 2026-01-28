@@ -1,6 +1,9 @@
 # Credentials - NEVER commit these
 .yahoo_cleanup_config
+.gmail_cleanup_config
 *.config
+credentials.json
+token.json
 
 # Backup folders
 my_backup/

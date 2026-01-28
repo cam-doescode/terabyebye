@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/terabyebye-Yahoo.png" alt="TeraByeBye Logo" width=600">
+  <img src="assets/terabyebye-Yahoo.png" alt="TeraByeBye Logo" width="600">
 </p>
 
 # TeraByeBye
@@ -36,6 +36,7 @@ In 2024, Yahoo! reduced free email storage from 1TB to 20GB. If you're like me w
 
 3. **Copy the config template:**
    ```bash
+   cd yahoo
    cp .yahoo_cleanup_config.template .yahoo_cleanup_config
    ```
 
@@ -44,6 +45,8 @@ In 2024, Yahoo! reduced free email storage from 1TB to 20GB. If you're like me w
 ## Usage
 
 ```bash
+cd yahoo
+
 # Preview what would be deleted (default)
 python3 terabyebye.py
 python3 terabyebye.py --preview    # Same thing, explicit
@@ -122,10 +125,63 @@ Deletes emails older than 1 year. Only used if neither `DELETE_YEARS` nor `CUTOF
 - Yahoo returns `SYS/TEMP` errors under load (retries with backoff)
 - POP3 only accesses Inbox (use IMAP for other folders if < 10k messages)
 
-## Note
+---
 
-This tool permanently deletes emails. Use dry-run mode first to preview what will be deleted.
+<p align="center">
+  <img src="assets/terabyebye-Gmail.png" alt="GmailByeBye Logo" width="600">
+</p>
+
+# GmailByeBye
+
+**Now with Gmail support!**
+
+*Added because my wife had 45,000 "SALE ENDS TODAY!!!" emails from 2016 and Google kept asking her to pay for more storage. Honey, the sale ended 8 years ago. Let it go.*
+
+Same great deletion power, now for Gmail. Uses the Gmail API for efficient batch operations and label-based filtering.
+
+## Gmail Setup
+
+1. **Install dependencies:**
+   ```bash
+   pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
+   ```
+
+2. **Create Google Cloud credentials:**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a project and enable Gmail API
+   - Create OAuth 2.0 credentials (Desktop app)
+   - Download as `gmail/credentials.json`
+
+3. **Copy the config template:**
+   ```bash
+   cd gmail
+   cp .gmail_cleanup_config.template .gmail_cleanup_config
+   ```
+
+4. **Edit config** with your target labels and date range
+
+See [gmail/README.md](gmail/README.md) for detailed setup instructions.
+
+## Gmail Usage
+
+```bash
+cd gmail
+
+python3 gmailbyebye.py                    # Preview
+python3 gmailbyebye.py --delete           # Delete with confirmation
+python3 gmailbyebye.py --backup ./backup --delete  # Backup + delete
+python3 gmailbyebye.py --unhinged         # No prompts, no mercy
+```
+
+### Gmail-Specific Features
+
+- **Target specific labels** - INBOX, CATEGORY_PROMOTIONS, CATEGORY_SOCIAL, etc.
+- **Larger batches** - up to 1000 per batch (vs Yahoo's 50)
+- **No binary search needed** - Gmail's search handles date filtering
+- **OAuth2 authentication** - secure, no app passwords needed
+
+---
 
 ## License
 
-MIT - Do whatever you want with it. If it helps you escape Yahoo's storage prison, I'm happy.
+MIT - Do whatever you want with it. If it helps you escape email storage prison, I'm happy.
