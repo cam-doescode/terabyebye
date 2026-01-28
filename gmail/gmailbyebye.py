@@ -36,6 +36,8 @@ DEFAULT_CONFIG = {
     "DELETE_YEARS": None,  # Format: "2009-2015"
     "LABELS": None,  # Comma-separated: "INBOX,CATEGORY_PROMOTIONS"
     "BATCH_SIZE": 100,  # Gmail API allows up to 1000
+    "EXCLUDE_SUBJECTS": None,  # Comma-separated keywords to exclude
+    "EXCLUDE_SENDERS": None,  # Comma-separated, supports *@domain.com wildcards
 }
 
 
@@ -73,6 +75,10 @@ def load_config():
                         config["DELETE_YEARS"] = value
                     elif key == "LABELS":
                         config["LABELS"] = value
+                    elif key == "EXCLUDE_SUBJECTS":
+                        config["EXCLUDE_SUBJECTS"] = value
+                    elif key == "EXCLUDE_SENDERS":
+                        config["EXCLUDE_SENDERS"] = value
 
         print(f"Loaded config from {config_file}")
 
@@ -169,6 +175,35 @@ def build_search_query(config):
         else:
             query_parts.append(label_queries[0])
         description += f" in {labels}"
+
+    # Add exclusions (optional)
+    exclusions = []
+
+    exclude_subjects = config.get("EXCLUDE_SUBJECTS")
+    if exclude_subjects:
+        for subject in exclude_subjects.split(","):
+            subject = subject.strip()
+            if subject:
+                # Quote subjects with spaces
+                if " " in subject:
+                    query_parts.append(f'-subject:"{subject}"')
+                else:
+                    query_parts.append(f"-subject:{subject}")
+                exclusions.append(f"subject:{subject}")
+
+    exclude_senders = config.get("EXCLUDE_SENDERS")
+    if exclude_senders:
+        for sender in exclude_senders.split(","):
+            sender = sender.strip()
+            if sender:
+                # Convert *@domain.com to @domain.com for Gmail
+                if sender.startswith("*"):
+                    sender = sender[1:]  # Remove leading *
+                query_parts.append(f"-from:{sender}")
+                exclusions.append(f"from:{sender}")
+
+    if exclusions:
+        description += f" (excluding {len(exclusions)} patterns)"
 
     return " ".join(query_parts), description
 

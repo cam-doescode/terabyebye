@@ -58,6 +58,20 @@ python3 terabyebye.py --backup ./email_backup --delete
 python3 terabyebye.py --unhinged
 ```
 
+## Exclusion Filters (Optional)
+
+Keep important emails from being deleted by adding filters to your config:
+
+```ini
+# Keep emails with these words in the subject
+EXCLUDE_SUBJECTS=receipt,invoice,tax,confirmation
+
+# Keep emails from these senders (wildcards supported)
+EXCLUDE_SENDERS=*@government.gov,*@irs.gov,*@bank.com
+```
+
+**Performance warning:** When exclusion filters are active, each message's headers must be fetched individually via POP3 before deletion. This adds a network round-trip per message and will be significantly slower than unfiltered deletion.
+
 ## Yahoo POP3 Quirks
 
 - Messages numbered 1 (oldest) to N (newest) in chronological order

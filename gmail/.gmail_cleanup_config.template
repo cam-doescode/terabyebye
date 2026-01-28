@@ -47,3 +47,13 @@ LABELS=INBOX,CATEGORY_PROMOTIONS,CATEGORY_SOCIAL
 # Emails to process per batch (default: 100, max: 1000)
 # Higher = faster, but may hit rate limits
 # BATCH_SIZE=100
+
+# ============================================================
+# Optional: Exclusion Filters
+# ============================================================
+
+# Keep emails with these words in the subject (comma-separated)
+# EXCLUDE_SUBJECTS=receipt,invoice,tax,confirmation
+
+# Keep emails from these senders (comma-separated, supports wildcards)
+# EXCLUDE_SENDERS=*@government.gov,*@irs.gov,*@bank.com,important@example.com

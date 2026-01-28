@@ -6,6 +6,7 @@ Uses binary search to find the cutoff point, then bulk deletes.
 import poplib
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
+from fnmatch import fnmatch
 import time
 import sys
 import os
@@ -24,6 +25,8 @@ DEFAULT_CONFIG = {
     "CUTOFF_DATE": None,
     "DELETE_YEARS": None,  # Format: "2009-2015" (deletes emails from those years)
     "BATCH_SIZE": 50,  # Keep small - Yahoo kills connections on larger batches
+    "EXCLUDE_SUBJECTS": None,  # Comma-separated keywords to exclude
+    "EXCLUDE_SENDERS": None,  # Comma-separated, supports *@domain.com wildcards
 }
 
 def load_config():
@@ -61,6 +64,10 @@ def load_config():
                         config["BATCH_SIZE"] = int(value)
                     elif key == "DELETE_YEARS":
                         config["DELETE_YEARS"] = value
+                    elif key == "EXCLUDE_SUBJECTS":
+                        config["EXCLUDE_SUBJECTS"] = value
+                    elif key == "EXCLUDE_SENDERS":
+                        config["EXCLUDE_SENDERS"] = value
 
         print(f"Loaded config from {config_file}")
 
@@ -104,6 +111,64 @@ def get_message_date(pop, msg_num):
     except:
         pass
     return None
+
+
+def get_message_headers(pop, msg_num):
+    """Get Subject and From headers of a message using TOP command."""
+    try:
+        response, lines, octets = pop.top(msg_num, 0)
+        subject = ""
+        sender = ""
+        for line in lines:
+            if isinstance(line, bytes):
+                line = line.decode('utf-8', errors='replace')
+            lower = line.lower()
+            if lower.startswith('subject:'):
+                subject = line[8:].strip()
+            elif lower.startswith('from:'):
+                sender = line[5:].strip()
+        return subject, sender
+    except:
+        return "", ""
+
+
+def parse_exclusions(config):
+    """Parse exclusion config into lists. Returns (subject_keywords, sender_patterns) or (None, None)."""
+    subject_keywords = None
+    sender_patterns = None
+
+    exclude_subjects = config.get("EXCLUDE_SUBJECTS")
+    if exclude_subjects:
+        subject_keywords = [s.strip().lower() for s in exclude_subjects.split(",") if s.strip()]
+
+    exclude_senders = config.get("EXCLUDE_SENDERS")
+    if exclude_senders:
+        sender_patterns = [s.strip().lower() for s in exclude_senders.split(",") if s.strip()]
+
+    return subject_keywords, sender_patterns
+
+
+def should_exclude(subject, sender, subject_keywords, sender_patterns):
+    """Check if a message should be excluded from deletion."""
+    if subject_keywords:
+        subject_lower = subject.lower()
+        for keyword in subject_keywords:
+            if keyword in subject_lower:
+                return True
+
+    if sender_patterns:
+        # Extract email address from "Name <email>" format
+        sender_lower = sender.lower()
+        if "<" in sender_lower and ">" in sender_lower:
+            sender_email = sender_lower.split("<")[1].split(">")[0]
+        else:
+            sender_email = sender_lower.strip()
+
+        for pattern in sender_patterns:
+            if fnmatch(sender_email, pattern):
+                return True
+
+    return False
 
 
 def binary_search_date(pop, num_messages, target_date, find_first_gte=True, label="cutoff"):
@@ -561,13 +626,29 @@ def delete_messages_robust(config, messages_to_delete, start_position=1):
             break
 
         end_msg = current_start + batch_count - 1
-        print(f"Marking messages {current_start}-{end_msg} for deletion...")
+        print(f"Checking messages {current_start}-{end_msg} for deletion...")
+
+        # Parse exclusions if configured
+        subject_keywords, sender_patterns = parse_exclusions(config)
+        has_exclusions = subject_keywords or sender_patterns
 
         marked_count = 0
+        skipped_count = 0
         errors_this_batch = 0
 
         for i in range(current_start, current_start + batch_count):
             try:
+                # Check exclusions before deleting
+                if has_exclusions:
+                    subject, sender = get_message_headers(pop, i)
+                    if should_exclude(subject, sender, subject_keywords, sender_patterns):
+                        skipped_count += 1
+                        if skipped_count <= 5:
+                            print(f"  Excluded #{i}: {subject[:60]}")
+                        elif skipped_count == 6:
+                            print(f"  (suppressing further exclusion messages...)")
+                        continue
+
                 pop.dele(i)
                 marked_count += 1
 
@@ -581,6 +662,9 @@ def delete_messages_robust(config, messages_to_delete, start_position=1):
                 if errors_this_batch > 10:
                     print(f"  Too many errors, trying to commit what we have...")
                     break
+
+        if skipped_count > 0:
+            print(f"  Excluded {skipped_count} messages matching filters")
 
         # Commit by quitting - this is where Yahoo may reject
         print(f"Committing {marked_count:,} deletions...")
@@ -702,6 +786,17 @@ Examples:
     if messages_to_delete == 0:
         print(f"\nNothing to delete! No emails match: {description}")
         return
+
+    # Warn about exclusion filter slowdown
+    subject_keywords, sender_patterns = parse_exclusions(config)
+    if subject_keywords or sender_patterns:
+        exclusion_count = len(subject_keywords or []) + len(sender_patterns or [])
+        print(f"\n  NOTE: {exclusion_count} exclusion filter(s) active.")
+        print(f"  Each message will be checked before deletion (slower).")
+        if subject_keywords:
+            print(f"  Excluding subjects containing: {', '.join(subject_keywords)}")
+        if sender_patterns:
+            print(f"  Excluding senders matching: {', '.join(sender_patterns)}")
 
     # Handle backup if requested
     if args.backup:

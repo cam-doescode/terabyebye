@@ -36,3 +36,15 @@ YAHOO_APP_PASSWORD=xxxx xxxx xxxx xxxx
 # Emails to delete per batch (default: 50, max: 50)
 # Smaller batches are more reliable - Yahoo kills larger connections
 # BATCH_SIZE=50
+
+# ============================================================
+# Optional: Exclusion Filters
+# ============================================================
+
+# Keep emails with these words in the subject (comma-separated)
+# WARNING: Enables per-message header checks - significantly slower!
+# EXCLUDE_SUBJECTS=receipt,invoice,tax,confirmation
+
+# Keep emails from these senders (comma-separated, supports wildcards)
+# WARNING: Enables per-message header checks - significantly slower!
+# EXCLUDE_SENDERS=*@government.gov,*@irs.gov,*@bank.com,important@example.com

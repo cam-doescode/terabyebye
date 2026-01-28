@@ -77,6 +77,20 @@ python3 gmailbyebye.py --unhinged
 
 On first run, a browser window will open for Google authorization. Grant access to allow the script to read and delete emails. A `token.json` file will be created to remember your authorization.
 
+## Exclusion Filters (Optional)
+
+Keep important emails from being deleted by adding filters to your config:
+
+```ini
+# Keep emails with these words in the subject
+EXCLUDE_SUBJECTS=receipt,invoice,tax,confirmation
+
+# Keep emails from these senders (wildcards supported)
+EXCLUDE_SENDERS=*@government.gov,*@irs.gov,*@bank.com
+```
+
+Exclusions are handled by Gmail's search query (e.g., `-subject:receipt -from:@irs.gov`), so there's no performance penalty.
+
 ## Gmail Labels Reference
 
 | Config Value | Gmail Folder |
