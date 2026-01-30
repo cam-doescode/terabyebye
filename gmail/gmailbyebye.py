@@ -4,6 +4,7 @@ Gmail Email Cleanup via Gmail API
 Uses Gmail search queries for efficient filtering, then batch deletes.
 """
 import os
+import stat
 import sys
 import time
 import base64
@@ -68,9 +69,17 @@ def load_config():
                     elif key == "CUTOFF_DATE":
                         config["CUTOFF_DATE"] = value
                     elif key == "YEARS_OLD":
-                        config["YEARS_OLD"] = int(value)
+                        val = int(value)
+                        if val < 0:
+                            print(f"Warning: YEARS_OLD cannot be negative, using default (1)")
+                        else:
+                            config["YEARS_OLD"] = val
                     elif key == "BATCH_SIZE":
-                        config["BATCH_SIZE"] = int(value)
+                        val = int(value)
+                        if val <= 0:
+                            print(f"Warning: BATCH_SIZE must be positive, using default (100)")
+                        else:
+                            config["BATCH_SIZE"] = val
                     elif key == "DELETE_YEARS":
                         config["DELETE_YEARS"] = value
                     elif key == "LABELS":
@@ -81,6 +90,15 @@ def load_config():
                         config["EXCLUDE_SENDERS"] = value
 
         print(f"Loaded config from {config_file}")
+
+        # Warn if config file is readable by others
+        try:
+            file_mode = os.stat(config_file).st_mode
+            if file_mode & (stat.S_IRGRP | stat.S_IROTH):
+                print(f"WARNING: {config_file} is readable by other users!")
+                print(f"  Run: chmod 600 {config_file}")
+        except OSError:
+            pass
 
     return config
 
@@ -119,10 +137,10 @@ def authenticate_gmail():
             flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
             creds = flow.run_local_server(port=0)
 
-        # Save credentials for next run
+        # Save credentials for next run (owner-only permissions)
         with open(TOKEN_FILE, 'w') as token:
             token.write(creds.to_json())
-        print(f"Credentials saved to {TOKEN_FILE}")
+        os.chmod(TOKEN_FILE, stat.S_IRUSR | stat.S_IWUSR)  # 600
 
     return build('gmail', 'v1', credentials=creds)
 
@@ -274,7 +292,7 @@ def get_message_details(service, message_id):
                 msg_date = parsedate_to_datetime(date_str)
                 if msg_date.tzinfo:
                     msg_date = msg_date.replace(tzinfo=None)
-            except:
+            except (ValueError, TypeError):
                 pass
 
         return msg_date, subject
@@ -531,7 +549,7 @@ def get_label_message_counts(service, labels):
                     id=label
                 ).execute()
                 counts[label] = label_info.get('messagesTotal', 0)
-            except:
+            except (HttpError, Exception):
                 counts[label] = "unknown"
     return counts
 
@@ -545,6 +563,7 @@ def main():
 Examples:
   python gmailbyebye.py                         # Preview what would be deleted
   python gmailbyebye.py --preview               # Same as above (explicit)
+  python gmailbyebye.py --safe                  # Backup + delete with extra safety checks
   python gmailbyebye.py --delete                # Actually delete emails
   python gmailbyebye.py --backup ./backup       # Backup only (no delete)
   python gmailbyebye.py --backup ./backup --delete  # Backup + delete each batch
@@ -559,6 +578,8 @@ Examples:
                         help="No prompts, no mercy. Just delete.")
     parser.add_argument("--backup", metavar="OUTPUT_DIR",
                         help="Backup emails to monthly ZIP files (add --delete to also delete)")
+    parser.add_argument("--safe", action="store_true",
+                        help="Safety mode: backup first, smaller batches, extra confirmations")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -567,17 +588,37 @@ Examples:
 
     config = load_config()
 
+    # Safe mode: backup + delete with extra guardrails
+    if args.safe:
+        args.delete = True
+        if not args.backup:
+            args.backup = os.path.join(os.path.dirname(os.path.abspath(__file__)), "email_backup")
+        config["BATCH_SIZE"] = min(config.get("BATCH_SIZE", 100), 50)
+        print("\n" + "=" * 60)
+        print("SAFE MODE")
+        print("  - All emails will be backed up before deletion")
+        print(f"  - Backup directory: {args.backup}")
+        print(f"  - Batch size: {config['BATCH_SIZE']} (smaller for safety)")
+        print("  - Extra confirmation prompts enabled")
+        print("=" * 60)
+
     # Unhinged mode implies delete
-    if args.unhinged:
+    elif args.unhinged:
         args.delete = True
         print("\n" + "!" * 60)
         print("UNHINGED MODE ACTIVATED")
         print("No prompts. No mercy. Deleting all old emails.")
         print("!" * 60)
+    elif args.delete and not args.backup:
+        print("\n" + "-" * 60)
+        print("TIP: Consider using --safe or --backup to save copies first.")
+        print("     Deleted emails cannot be recovered!")
+        print("-" * 60)
     elif not args.delete:
         print("\n" + "!" * 60)
         print("PREVIEW MODE - No emails will be deleted")
         print("Run with --delete to actually delete emails")
+        print("Run with --safe for guided backup + deletion")
         print("!" * 60)
 
     # Authenticate

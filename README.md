@@ -6,7 +6,9 @@
 
 **Yahoo! took your terabyte. Time to say bye-bye to old mail.**
 
-Bulk delete old Yahoo Mail emails via POP3. Bypasses Yahoo's 10,000 email IMAP limit. Built because Yahoo! slashed storage from 1TB to 20GB and gave us terrible cleanup tools.
+Bulk delete old emails via POP3 (Yahoo) and Gmail API / IMAP (Gmail). Built because Yahoo! slashed storage from 1TB to 20GB and gave us terrible cleanup tools.
+
+> **New here?** Check out [GETTING_STARTED.md](GETTING_STARTED.md) for a beginner-friendly walkthrough with no technical jargon.
 
 ## Why This Exists
 
@@ -16,7 +18,7 @@ In 2024, Yahoo! reduced free email storage from 1TB to 20GB. If you're like me w
 - Yahoo IMAP caps visible emails at 10,000 - older emails are **completely hidden**
 - There's no official bulk delete tool
 
-**TeraByeBye** uses POP3 to access ALL your emails (tested with 379,000+ messages) and delete them in bulk.
+TeraByeBye uses POP3 to access ALL your Yahoo emails (tested with 379,000+ messages) and delete them in bulk. Now with Gmail support too.
 
 ## Features
 
@@ -24,44 +26,83 @@ In 2024, Yahoo! reduced free email storage from 1TB to 20GB. If you're like me w
 - **Robust reconnection** handling for large mailboxes
 - **Batch processing** with automatic retry on connection drops
 - **Backup to ZIP** - export emails to monthly ZIP files before deletion
+- **Safe mode** - backup + delete with extra safety checks and smaller batches
 - **Dry-run mode** to preview before deleting
 - **Unhinged mode** for when you just want it gone
+- **Setup wizard** - interactive configuration, no config files to edit manually
 
-## Setup
+## Quick Start
 
-1. **Enable POP3** in Yahoo Mail settings (Settings > More Settings > Ways to access Yahoo Mail)
+### Option 1: Setup Wizard (recommended)
 
-2. **Generate an App Password** at https://login.yahoo.com/account/security
-   - Under "App passwords", create one for "Other App"
+```bash
+python3 setup.py
+```
 
-3. **Copy the config template:**
-   ```bash
-   cd yahoo
-   cp .yahoo_cleanup_config.template .yahoo_cleanup_config
-   ```
+The interactive wizard walks you through:
+- Choosing your provider (Yahoo or Gmail)
+- Entering credentials (tells you exactly where to get them)
+- Configuring deletion rules
+- Testing the connection
 
-4. **Edit `.yahoo_cleanup_config`** with your credentials
+### Option 2: Manual Setup
+
+See the [Yahoo](#yahoo-manual-setup) or [Gmail](#gmailbyebye) sections below for manual configuration.
 
 ## Usage
 
 ```bash
-cd yahoo
-
-# Preview what would be deleted (default)
+# Auto-detect provider and preview (safe - no changes made)
 python3 terabyebye.py
-python3 terabyebye.py --preview    # Same thing, explicit
 
-# Actually delete (with confirmation prompt)
+# Safe mode: backup + delete with extra confirmations (recommended for first run)
+python3 terabyebye.py --safe
+
+# Delete with confirmation
 python3 terabyebye.py --delete
 
-# Backup to monthly ZIP files, then delete
-python3 terabyebye.py --backup ./email_backup --delete
+# Force a specific provider
+python3 terabyebye.py --yahoo --delete
+python3 terabyebye.py --gmail --delete
+python3 terabyebye.py --gmail-oauth --delete
+
+# Backup + delete
+python3 terabyebye.py --backup ./my_backup --delete
 
 # No prompts, no mercy
 python3 terabyebye.py --unhinged
+
+# Check what's configured
+python3 terabyebye.py --status
+
+# Re-run setup wizard
+python3 terabyebye.py --setup
 ```
 
-### Backup Option
+Or run provider scripts directly:
+
+```bash
+cd yahoo
+python3 yahoobyebye.py              # Preview
+python3 yahoobyebye.py --safe       # Safe mode
+python3 yahoobyebye.py --delete     # Delete
+python3 yahoobyebye.py --unhinged   # No prompts
+```
+
+### Safe Mode
+
+If this is your first time or you want extra protection, use `--safe`:
+
+```bash
+python3 terabyebye.py --safe
+```
+
+Safe mode automatically:
+- **Backs up** all emails to ZIP files before deleting anything
+- Uses **smaller batches** for more granular control
+- Asks for **confirmation** before each step
+
+### Backup
 
 Use `--backup OUTPUT_DIR` to export emails:
 
@@ -84,6 +125,23 @@ Creates monthly ZIP files containing EML files:
 Each ZIP contains individual `.eml` files that can be opened in any email client or imported into other services.
 
 When using `--backup --delete`, each batch is deleted immediately after being written to disk. This keeps memory low and ensures you don't lose emails if the process is interrupted - you'll have everything backed up that was deleted.
+
+---
+
+## Yahoo Manual Setup
+
+1. **Enable POP3** in Yahoo Mail settings (Settings > More Settings > Ways to access Yahoo Mail)
+
+2. **Generate an App Password** at https://login.yahoo.com/account/security
+   - Under "App passwords", create one for "Other App"
+
+3. **Copy the config template:**
+   ```bash
+   cd yahoo
+   cp .yahoo_cleanup_config.template .yahoo_cleanup_config
+   ```
+
+4. **Edit `.yahoo_cleanup_config`** with your credentials
 
 ## Configuration Options
 
@@ -137,53 +195,76 @@ Deletes emails older than 1 year. Only used if neither `DELETE_YEARS` nor `CUTOF
 
 *Added because my wife had 45,000 "SALE ENDS TODAY!!!" emails from 2016 and Google kept asking her to pay for more storage. Honey, the sale ended 8 years ago. Let it go.*
 
-Same great deletion power, now for Gmail. Uses the Gmail API for efficient batch operations and label-based filtering.
+Same great deletion power, now for Gmail. Two versions available:
 
-## Gmail Setup
+### Quick Start (App Password - no dependencies)
 
-1. **Install dependencies:**
-   ```bash
-   pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
-   ```
+```bash
+cd gmail
+cp .gmail_simple_config.template .gmail_simple_config
+# Edit .gmail_simple_config with your email + App Password
+python3 gmailbyebye-simple.py              # Preview
+python3 gmailbyebye-simple.py --safe       # Safe: backup + delete
+python3 gmailbyebye-simple.py --delete     # Delete
+```
 
-2. **Create Google Cloud credentials:**
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a project and enable Gmail API
-   - Create OAuth 2.0 credentials (Desktop app)
-   - Download as `gmail/credentials.json`
+Just needs 2-Step Verification + an App Password from https://myaccount.google.com/apppasswords
 
-3. **Copy the config template:**
-   ```bash
-   cd gmail
-   cp .gmail_cleanup_config.template .gmail_cleanup_config
-   ```
+### Full Version (OAuth2 - faster, more capable)
 
-4. **Edit config** with your target labels and date range
+```bash
+pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
+cd gmail
+cp .gmail_cleanup_config.template .gmail_cleanup_config
+# Set up Google Cloud OAuth credentials (see gmail/README.md)
+python3 gmailbyebye.py                     # Preview
+python3 gmailbyebye.py --safe              # Safe: backup + delete
+python3 gmailbyebye.py --delete            # Delete
+```
 
-See [gmail/README.md](gmail/README.md) for detailed setup instructions.
+See [gmail/README.md](gmail/README.md) for detailed setup instructions for both versions.
 
 ## Gmail Usage
 
 ```bash
 cd gmail
 
-python3 gmailbyebye.py                    # Preview
-python3 gmailbyebye.py --delete           # Delete with confirmation
+# Simple version (App Password / IMAP)
+python3 gmailbyebye-simple.py              # Preview
+python3 gmailbyebye-simple.py --safe       # Safe: backup + delete + confirmations
+python3 gmailbyebye-simple.py --delete     # Delete with confirmation
+python3 gmailbyebye-simple.py --backup ./backup --delete  # Backup + delete
+python3 gmailbyebye-simple.py --unhinged   # No prompts, no mercy
+
+# Full version (OAuth2 / Gmail API)
+python3 gmailbyebye.py                     # Preview
+python3 gmailbyebye.py --safe              # Safe: backup + delete + confirmations
+python3 gmailbyebye.py --delete            # Delete with confirmation
 python3 gmailbyebye.py --backup ./backup --delete  # Backup + delete
-python3 gmailbyebye.py --unhinged         # No prompts, no mercy
+python3 gmailbyebye.py --unhinged          # No prompts, no mercy
 ```
 
-### Gmail-Specific Features
+### Gmail Features
 
+- **Two auth options** - App Password / IMAP (easy) or OAuth2 / Gmail API (powerful)
 - **Target specific labels** - INBOX, CATEGORY_PROMOTIONS, CATEGORY_SOCIAL, etc.
-- **Larger batches** - up to 1000 per batch (vs Yahoo's 50)
-- **No binary search needed** - Gmail's search handles date filtering
-- **OAuth2 authentication** - secure, no app passwords needed
+- **Larger batches** - up to 1000 per batch with OAuth version (vs Yahoo's 50)
+- **No binary search needed** - Gmail/IMAP search handles date filtering
 
 ---
+
+## Disclaimer
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. BY USING THIS SOFTWARE, YOU ACKNOWLEDGE AND AGREE THAT:
+
+- **Email deletion is permanent and irreversible.** The authors are not responsible for any lost, deleted, or corrupted emails.
+- **You use this tool entirely at your own risk.** The authors assume no liability for errors, malfunctions, data loss, security vulnerabilities, or any other damages arising from the use of this software.
+- **You are solely responsible for your credentials.** This tool requires access to your email account. The authors are not responsible for any unauthorized access, credential exposure, or security breaches.
+- **No guarantee of correctness.** Date filtering, exclusion filters, and batch operations are best-effort. Always use preview mode first and back up anything important before deleting.
+- **This is not an official product** of Yahoo, Google, or any email provider. It may break at any time due to provider changes.
+
+Use preview mode (`--preview`) before deleting anything. When in doubt, use `--safe` or `--backup` first.
 
 ## License
 
 MIT - Do whatever you want with it. If it helps you escape email storage prison, I'm happy.
-
-All features are experimental, do so at your own risk. Not responsible for you losing emails.

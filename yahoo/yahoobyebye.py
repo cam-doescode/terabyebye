@@ -4,6 +4,8 @@ Yahoo Email Cleanup via POP3 - FAST VERSION
 Uses binary search to find the cutoff point, then bulk deletes.
 """
 import poplib
+import ssl
+import stat
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timedelta
 from fnmatch import fnmatch
@@ -59,9 +61,17 @@ def load_config():
                     elif key == "CUTOFF_DATE":
                         config["CUTOFF_DATE"] = value
                     elif key == "YEARS_OLD":
-                        config["YEARS_OLD"] = int(value)
+                        val = int(value)
+                        if val < 0:
+                            print(f"Warning: YEARS_OLD cannot be negative, using default (1)")
+                        else:
+                            config["YEARS_OLD"] = val
                     elif key == "BATCH_SIZE":
-                        config["BATCH_SIZE"] = int(value)
+                        val = int(value)
+                        if val <= 0:
+                            print(f"Warning: BATCH_SIZE must be positive, using default (50)")
+                        else:
+                            config["BATCH_SIZE"] = val
                     elif key == "DELETE_YEARS":
                         config["DELETE_YEARS"] = value
                     elif key == "EXCLUDE_SUBJECTS":
@@ -70,6 +80,15 @@ def load_config():
                         config["EXCLUDE_SENDERS"] = value
 
         print(f"Loaded config from {config_file}")
+
+        # Warn if config file is readable by others (contains credentials)
+        try:
+            file_mode = os.stat(config_file).st_mode
+            if file_mode & (stat.S_IRGRP | stat.S_IROTH):
+                print(f"WARNING: {config_file} is readable by other users!")
+                print(f"  Run: chmod 600 {config_file}")
+        except OSError:
+            pass
 
     return config
 
@@ -85,8 +104,10 @@ def get_cutoff_date(config):
 
 
 def connect_pop3(config, timeout=60):
-    """Connect to Yahoo POP3 with timeout."""
-    pop = poplib.POP3_SSL(POP3_SERVER, POP3_PORT, timeout=timeout)
+    """Connect to Yahoo POP3 with timeout and explicit TLS settings."""
+    ctx = ssl.create_default_context()
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    pop = poplib.POP3_SSL(POP3_SERVER, POP3_PORT, timeout=timeout, context=ctx)
     pop.user(config["email"])
     pop.pass_(config["password"])
     return pop
@@ -106,9 +127,9 @@ def get_message_date(pop, msg_num):
                     if dt.tzinfo:
                         dt = dt.replace(tzinfo=None)
                     return dt
-                except:
+                except (ValueError, TypeError):
                     pass
-    except:
+    except (poplib.error_proto, OSError, UnicodeDecodeError):
         pass
     return None
 
@@ -128,7 +149,7 @@ def get_message_headers(pop, msg_num):
             elif lower.startswith('from:'):
                 sender = line[5:].strip()
         return subject, sender
-    except:
+    except (poplib.error_proto, OSError, UnicodeDecodeError):
         return "", ""
 
 
@@ -401,7 +422,7 @@ def backup_emails_to_zip(config, start_pos, end_pos, output_dir, delete_after=Fa
             print(f"STAT failed: {e}")
             try:
                 pop.quit()
-            except:
+            except Exception:
                 pass
             consecutive_failures += 1
             continue
@@ -418,7 +439,7 @@ def backup_emails_to_zip(config, start_pos, end_pos, output_dir, delete_after=Fa
             print("No more messages to process.")
             try:
                 pop.quit()
-            except:
+            except Exception:
                 pass
             break
 
@@ -462,7 +483,7 @@ def backup_emails_to_zip(config, start_pos, end_pos, output_dir, delete_after=Fa
         if consecutive_failures >= max_failures:
             try:
                 pop.quit()
-            except:
+            except Exception:
                 pass
             break
 
@@ -507,7 +528,7 @@ def backup_emails_to_zip(config, start_pos, end_pos, output_dir, delete_after=Fa
         else:
             try:
                 pop.quit()
-            except:
+            except Exception:
                 pass
             consecutive_failures = 0
 
@@ -573,7 +594,7 @@ def delete_messages_robust(config, messages_to_delete, start_position=1):
             print(f"STAT failed: {e}")
             try:
                 pop.quit()
-            except:
+            except Exception:
                 pass
             consecutive_failures += 1
             if consecutive_failures >= max_failures:
@@ -696,23 +717,24 @@ def delete_messages_robust(config, messages_to_delete, start_position=1):
         pop.quit()
         total_deleted = initial_count - final_count if initial_count else 0
         return total_deleted
-    except:
+    except Exception:
         return initial_count - num_messages if initial_count else 0
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(
-        description="TeraByeBye - Bulk delete Yahoo emails via POP3",
+        description="YahooByeBye - Bulk delete Yahoo emails via POP3",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python terabyebye.py                         # Preview what would be deleted
-  python terabyebye.py --preview               # Same as above (explicit)
-  python terabyebye.py --delete                # Actually delete emails
-  python terabyebye.py --backup ./backup       # Backup only (no delete)
-  python terabyebye.py --backup ./backup --delete  # Backup + delete each batch
-  python terabyebye.py --unhinged              # No prompts, no mercy
+  python yahoobyebye.py                         # Preview what would be deleted
+  python yahoobyebye.py --preview               # Same as above (explicit)
+  python yahoobyebye.py --safe                  # Backup + delete with extra safety checks
+  python yahoobyebye.py --delete                # Actually delete emails
+  python yahoobyebye.py --backup ./backup       # Backup only (no delete)
+  python yahoobyebye.py --backup ./backup --delete  # Backup + delete each batch
+  python yahoobyebye.py --unhinged              # No prompts, no mercy
         """
     )
     parser.add_argument("--preview", action="store_true",
@@ -723,10 +745,12 @@ Examples:
                         help="No prompts, no mercy. Just delete.")
     parser.add_argument("--backup", metavar="OUTPUT_DIR",
                         help="Backup emails to monthly ZIP files (add --delete to also delete)")
+    parser.add_argument("--safe", action="store_true",
+                        help="Safety mode: backup first, smaller batches, extra confirmations")
     args = parser.parse_args()
 
     print("=" * 60)
-    print("TeraByeBye - Yahoo POP3 Email Cleanup")
+    print("YahooByeBye - Yahoo POP3 Email Cleanup")
     print("=" * 60)
 
     config = load_config()
@@ -734,17 +758,37 @@ Examples:
         print("Error: Could not load credentials from config file")
         sys.exit(1)
 
+    # Safe mode: backup + delete with extra guardrails
+    if args.safe:
+        args.delete = True
+        if not args.backup:
+            args.backup = os.path.join(os.path.dirname(os.path.abspath(__file__)), "email_backup")
+        config["BATCH_SIZE"] = min(config.get("BATCH_SIZE", 50), 25)
+        print("\n" + "=" * 60)
+        print("SAFE MODE")
+        print("  - All emails will be backed up before deletion")
+        print(f"  - Backup directory: {args.backup}")
+        print(f"  - Batch size: {config['BATCH_SIZE']} (smaller for safety)")
+        print("  - Extra confirmation prompts enabled")
+        print("=" * 60)
+
     # Unhinged mode implies delete
-    if args.unhinged:
+    elif args.unhinged:
         args.delete = True
         print("\n" + "!" * 60)
         print("UNHINGED MODE ACTIVATED")
         print("No prompts. No mercy. Deleting all old emails.")
         print("!" * 60)
+    elif args.delete and not args.backup:
+        print("\n" + "-" * 60)
+        print("TIP: Consider using --safe or --backup to save copies first.")
+        print("     Deleted emails cannot be recovered!")
+        print("-" * 60)
     elif not args.delete:
         print("\n" + "!" * 60)
         print("PREVIEW MODE - No emails will be deleted")
         print("Run with --delete to actually delete emails")
+        print("Run with --safe for guided backup + deletion")
         print("!" * 60)
 
     print(f"\nConnecting to {POP3_SERVER}...")

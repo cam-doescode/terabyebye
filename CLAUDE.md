@@ -9,11 +9,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Directory Structure
 
 ```
-yahoo/          # Yahoo Mail tool (POP3)
-gmail/          # Gmail tool (Gmail API)
-legacy_code/    # Deprecated IMAP scripts
-assets/         # Logo images
+terabyebye.py   # Unified CLI wrapper (auto-detects provider)
+setup.py         # Interactive setup wizard
+yahoo/           # Yahoo Mail tool (POP3)
+gmail/           # Gmail tool (Gmail API + IMAP)
+legacy_code/     # Deprecated IMAP scripts
+assets/          # Logo images
 ```
+
+## Top-Level Scripts
+
+### `terabyebye.py` - Unified CLI Wrapper
+
+Auto-detects which providers are configured and routes to the right script. Supports `--yahoo`, `--gmail`, `--gmail-oauth` to force a provider, `--status` to check config, and `--setup` to launch the wizard. All other flags are passed through to the underlying script.
+
+### `setup.py` - Interactive Setup Wizard
+
+Walks users through provider selection, credential entry, deletion method config, exclusion filters, and connection testing. Run with `--status` to see what's configured.
 
 ## Yahoo Tool (yahoo/)
 
@@ -21,10 +33,10 @@ assets/         # Logo images
 
 ```bash
 cd yahoo
-python3 terabyebye.py              # Preview
-python3 terabyebye.py --delete     # Delete with confirmation
-python3 terabyebye.py --backup ./backup --delete
-python3 terabyebye.py --unhinged   # No prompts
+python3 yahoobyebye.py              # Preview
+python3 yahoobyebye.py --delete     # Delete with confirmation
+python3 yahoobyebye.py --backup ./backup --delete
+python3 yahoobyebye.py --unhinged   # No prompts
 ```
 
 ### Config: `yahoo/.yahoo_cleanup_config`
@@ -52,46 +64,51 @@ BATCH_SIZE=50
 
 ## Gmail Tool (gmail/)
 
+Two versions: `gmailbyebye.py` (OAuth2/API) and `gmailbyebye-simple.py` (App Password/IMAP).
+
 ### Running
 
 ```bash
 cd gmail
+# Simple version (App Password)
+python3 gmailbyebye-simple.py              # Preview
+python3 gmailbyebye-simple.py --delete     # Delete
+
+# Full version (OAuth2)
 python3 gmailbyebye.py              # Preview
-python3 gmailbyebye.py --delete     # Delete with confirmation
-python3 gmailbyebye.py --backup ./backup --delete
-python3 gmailbyebye.py --unhinged   # No prompts
+python3 gmailbyebye.py --delete     # Delete
 ```
 
-### Config: `gmail/.gmail_cleanup_config`
+### Config: `gmail/.gmail_simple_config` (App Password version)
 
 ```ini
 GMAIL_EMAIL=user@gmail.com
-DELETE_YEARS=2015-2020  # or CUTOFF_DATE or YEARS_OLD
+GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+DELETE_YEARS=2015-2020
+LABELS=INBOX
+```
+
+### Config: `gmail/.gmail_cleanup_config` (OAuth2 version)
+
+```ini
+GMAIL_EMAIL=user@gmail.com
+DELETE_YEARS=2015-2020
 LABELS=INBOX,CATEGORY_PROMOTIONS
 BATCH_SIZE=100
 ```
 
-### Setup
+### Setup (OAuth2 version)
 
 Requires OAuth2 credentials from Google Cloud Console:
 1. Enable Gmail API
 2. Create OAuth 2.0 credentials (Desktop app)
 3. Save as `gmail/credentials.json`
 
-### Key Functions
+### Setup (Simple version)
 
-- `authenticate_gmail()` - OAuth2 flow
-- `build_search_query()` - Builds Gmail search from config
-- `get_messages_by_query()` - Finds messages using Gmail search
-- `backup_emails_to_zip()` - Downloads to monthly ZIPs
-- `delete_messages_robust()` - Batch deletion with retry/backoff
-
-### Gmail API Notes
-
-- Uses `gmail.modify` scope for read/delete
-- Batch size up to 1000 (default: 100)
-- Rate limited: handle 429 responses
-- Can target specific labels
+1. Enable 2-Step Verification on Google Account
+2. Generate App Password at https://myaccount.google.com/apppasswords
+3. Enable IMAP in Gmail settings
 
 ## Legacy Code
 

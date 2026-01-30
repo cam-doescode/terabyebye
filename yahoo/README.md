@@ -1,4 +1,4 @@
-# TeraByeBye (Yahoo)
+# YahooByeBye
 
 Bulk delete Yahoo Mail emails via POP3. Bypasses Yahoo's 10,000 email IMAP limit.
 
@@ -45,17 +45,17 @@ BATCH_SIZE=50
 
 ```bash
 # Preview what would be deleted (default)
-python3 terabyebye.py
-python3 terabyebye.py --preview
+python3 yahoobyebye.py
+python3 yahoobyebye.py --preview
 
 # Actually delete (with confirmation prompt)
-python3 terabyebye.py --delete
+python3 yahoobyebye.py --delete
 
 # Backup to monthly ZIP files, then delete
-python3 terabyebye.py --backup ./email_backup --delete
+python3 yahoobyebye.py --backup ./email_backup --delete
 
 # No prompts, no mercy
-python3 terabyebye.py --unhinged
+python3 yahoobyebye.py --unhinged
 ```
 
 ## Exclusion Filters (Optional)

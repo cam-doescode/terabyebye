@@ -1,0 +1,66 @@
+# Gmail Simple Cleanup Configuration Template
+# Copy this file to .gmail_simple_config and fill in your settings
+# NEVER commit your actual .gmail_simple_config file!
+
+# ============================================================
+# Required: Credentials
+# ============================================================
+
+# Your Gmail email address
+GMAIL_EMAIL=your_email@gmail.com
+
+# Your Gmail App Password (NOT your regular password)
+# Generate one at: https://myaccount.google.com/apppasswords
+# Requires 2-Step Verification enabled on your account
+GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+
+# ============================================================
+# Required: What to Delete (choose ONE method)
+# ============================================================
+
+# METHOD 1: Delete emails from a specific year range
+# Format: YYYY-YYYY (e.g., 2015-2020 deletes all emails from those years)
+DELETE_YEARS=2015-2020
+
+# METHOD 2: Delete emails before a specific date (format: DD-Mon-YYYY)
+# CUTOFF_DATE=01-Jan-2024
+
+# METHOD 3: Delete emails older than X years (default: 1)
+# Only used if neither DELETE_YEARS nor CUTOFF_DATE is set
+# YEARS_OLD=1
+
+# ============================================================
+# Optional: Target Folders
+# ============================================================
+
+# Which Gmail folders to clean (comma-separated)
+# Common values:
+#   INBOX                  - Your inbox
+#   SENT                   - Sent mail
+#   SPAM                   - Spam folder
+#   TRASH                  - Trash
+#   CATEGORY_PROMOTIONS    - Promotions tab
+#   CATEGORY_SOCIAL        - Social tab
+#   CATEGORY_UPDATES       - Updates tab
+#   CATEGORY_FORUMS        - Forums tab
+#   ALL                    - All Mail
+LABELS=INBOX
+
+# ============================================================
+# Optional: Performance Settings
+# ============================================================
+
+# Emails to process per batch (default: 100)
+# BATCH_SIZE=100
+
+# ============================================================
+# Optional: Exclusion Filters
+# ============================================================
+
+# Keep emails with these words in the subject (comma-separated)
+# NOTE: Enables per-message header checks - slower than unfiltered deletion
+# EXCLUDE_SUBJECTS=receipt,invoice,tax,confirmation
+
+# Keep emails from these senders (comma-separated, supports wildcards)
+# NOTE: Enables per-message header checks - slower than unfiltered deletion
+# EXCLUDE_SENDERS=*@government.gov,*@irs.gov,*@bank.com,important@example.com

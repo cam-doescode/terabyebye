@@ -1,6 +1,7 @@
 # Credentials - NEVER commit these
 .yahoo_cleanup_config
 .gmail_cleanup_config
+.gmail_simple_config
 *.config
 credentials.json
 token.json
@@ -12,6 +13,9 @@ backup/
 
 # Legacy/deprecated code
 legacy_code/
+
+# Virtual environments
+venv/
 
 # Python
 __pycache__/
